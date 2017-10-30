@@ -1,0 +1,14 @@
+.dub
+docs.json
+__dummy.html
+docs/
+puredlangdbf.so
+puredlangdbf.dylib
+puredlangdbf.dll
+puredlangdbf.a
+puredlangdbf.lib
+puredlangdbf-test-*
+*.exe
+*.o
+*.obj
+*.lst
