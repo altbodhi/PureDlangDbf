@@ -1,4 +1,3 @@
-module dbf;
 import std.stdio;
 
     /// <summary>
@@ -207,14 +206,15 @@ import std.stdio;
         /// <param name="nDataAddress">offset from start of record</param>
         public this(string sName, DbfColumnType type, int nLength, int nDecimals, int nDataAddress)
         {
-            this(sName, type, nLength, nDecimals)
+            this(sName, type, nLength, nDecimals);
             _dataAddress = nDataAddress;
         }
 
 
         public this(string sName, DbfColumnType type)
-            : this(sName, type, 0, 0)
+            
         {
+             this(sName, type, 0, 0);
             if (type == DbfColumnType.Number || type == DbfColumnType.Float || type == DbfColumnType.Character)
                 throw new Exception("For number and character field types you must specify Length and Decimal Precision.");
 
@@ -224,14 +224,13 @@ import std.stdio;
         /// <summary>
         /// Field Name.
         /// </summary>
-        public string Name
-        {
-            get
+        @property string Name()
+     
             {
                 return _name;
             }
 
-            set
+            @property void Name(string value)
             {
                 //name:
                 if (string.IsNullOrEmpty(value))
@@ -244,18 +243,15 @@ import std.stdio;
 
             }
 
-        }
+     
 
 
         /// <summary>
         /// Field Type (C N L D or M).
         /// </summary>
-        public DbfColumnType ColumnType
+        @property DbfColumnType ColumnType()
         {
-            get
-            {
                 return _type;
-            }
         }
 
 
@@ -263,10 +259,8 @@ import std.stdio;
         /// Returns column type as a char, (as written in the DBF column header)
         /// N=number, C=char, B=binary, L=boolean, D=date, I=integer, M=memo
         /// </summary>
-        public char ColumnTypeChar
+        @property char ColumnTypeChar()
         {
-            get
-            {
                 switch (_type)
                 {
                     case DbfColumnType.Number:
@@ -296,42 +290,32 @@ import std.stdio;
 
                 throw new Exception("Unrecognized field type!");
 
-            }
+            
         }
 
 
         /// <summary>
         /// Field Data Address offset from the start of the record.
         /// </summary>
-        public int DataAddress
+        @property int DataAddress()
         {
-            get
-            {
                 return _dataAddress;
-            }
         }
 
         /// <summary>
         /// Length of the data in bytes.
         /// </summary>
-        public int Length
+         @property  int Length()
         {
-            get
-            {
                 return _length;
-            }
         }
 
         /// <summary>
         /// Field decimal count in Binary, indicating where the decimal is.
         /// </summary>
-        public int DecimalCount
+        @property int DecimalCount()
         {
-            get
-            {
                 return _decimalCount;
-            }
-
         }
 
 
@@ -343,19 +327,21 @@ import std.stdio;
         /// </summary>
         /// <param name="type"></param>
         /// <returns></returns>
-        public static DbfColumnType GetDbaseType(Type type)
+        public static DbfColumnType GetDbaseType(T)(T type)
         {
 
-            if (type == typeof(string))
+            if (typeof(type) == typeid(string))
                 return DbfColumnType.Character;
-            else if (type == typeof(double) || type == typeof(float))
+             if (typeof(type) ==  typeid(double))
+            return DbfColumnType.Number;
+            /* if (typeof(type) ==  typeid((float))
                 return DbfColumnType.Number;
-            else if (type == typeof(bool))
+             if (typeof(type) ==  typeid((bool))
                 return DbfColumnType.Boolean;
-            else if (type == typeof(DateTime))
+             if (typeof(type) ==  typeid((datetime))
                 return DbfColumnType.Date;
-
-            throw new NotSupportedException(String.Format("{0} does not have a corresponding dbase type.", type.Name));
+*/
+            throw new Exception(type.stringof ~ "  does not have a corresponding dbase type.");
 
         }
 
@@ -373,7 +359,7 @@ import std.stdio;
                 case "F": return DbfColumnType.Float;
             }
 
-            throw new NotSupportedException(String.Format("{0} does not have a corresponding dbase type.", c));
+            throw new Exception("does not have a corresponding dbase type. = " ~ c);
 
         }
 
@@ -398,11 +384,5 @@ import std.stdio;
 
         }
 
-
-
-        public object Clone()
-        {
-            return this.MemberwiseClone();
-        }
-    }
+}
 

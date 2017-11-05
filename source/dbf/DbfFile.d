@@ -1,5 +1,3 @@
-module dbf;
-
 import std.stdio;
 
     public class DbfFile
@@ -8,7 +6,7 @@ import std.stdio;
         /// <summary>
         /// Helps read/write dbf file header information.
         /// </summary>
-        protected DbfHeader _header;
+        DbfHeader _header;
 
 
         /// <summary>
@@ -20,15 +18,10 @@ import std.stdio;
         /// <summary>
         /// Streams to read and write to the DBF file.
         /// </summary>
-        Stream _dbfFile = null;
-        BinaryReader _dbfFileReader = null;
-        BinaryWriter _dbfFileWriter = null;
+        File _dbfFile = null;
+       
 
-        /// <summary>
-        /// By default use windows 1252 code page encoding.
-        /// </summary>
-        private Encoding encoding =  Encoding.GetEncoding(1252);
-
+      
         /// <summary>
         /// File that was opened, if one was opened at all.
         /// </summary>
@@ -51,15 +44,11 @@ import std.stdio;
 
 
        
-        public this()
-            : this(Encoding.GetEncoding(1252))
-        {
-        }
+       
 
-        public this(Encoding encoding)
+        public this()
         {
-            this.encoding = encoding;
-            _header = new DbfHeader(encoding);
+            _header = DbfHeader;
         }
 
         /// <summary>
@@ -68,27 +57,16 @@ import std.stdio;
         /// RecordCount information in header can not be trusted always, since some packages store 0 there.
         /// </summary>
         /// <param name="ofs"></param>
-        public void Open(Stream ofs)
+        public void Open(File ofs)
         {
             if (_dbfFile != null)
                 Close();
 
             _dbfFile = ofs;
-            _dbfFileReader = null;
-            _dbfFileWriter = null;
-
-            if (_dbfFile.CanRead)
-                _dbfFileReader = new BinaryReader(_dbfFile, encoding);
-
-            if (_dbfFile.CanWrite)
-                _dbfFileWriter = new BinaryWriter(_dbfFile, encoding);
-
             //reset position
             _recordsReadCount = 0;
-
             //assume header is not written
             _headerWritten = false;
-
             //read the header
             if (ofs.CanRead)
             {

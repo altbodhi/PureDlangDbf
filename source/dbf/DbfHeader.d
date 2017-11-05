@@ -1,4 +1,3 @@
-module dbf;
 import std.stdio;
 import std.encoding;
     /// <summary>
@@ -650,9 +649,5 @@ import std.encoding;
 
 
 
-        public object Clone()
-        {
-            return this.MemberwiseClone();
-        }
     }
 
