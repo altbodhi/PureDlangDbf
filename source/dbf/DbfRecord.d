@@ -1,3 +1,5 @@
+import national.charsets;
+import national.encoding;
 import std.stdio;
 import std.conv;
 import std.datetime;
@@ -58,7 +60,7 @@ import std.datetime;
 
 
         //encoder
-        private  Encoding encoding = Encoding.GetEncoding(1252);
+        private  OneByteCodePage encoding = Windows1251;
 
         /// <summary>
         /// Column Name to Column Index map
@@ -316,7 +318,7 @@ import std.datetime;
                 
             }
 
-        public void set(string nColName,value)
+        public void set(string nColName,string value)
             {
                 if (_colNameToIdx.ContainsKey(nColName))
                    set( _colNameToIdx[nColName] , value);
@@ -388,9 +390,9 @@ import std.datetime;
         /// returns a string representation of this record.
         /// </summary>
         /// <returns></returns>
-        public override string ToString()
+        public override string toString()
         {
-            return new string(encoding.GetChars(_data));
+            return new string(encoding.encode(_data));
         }
 
 

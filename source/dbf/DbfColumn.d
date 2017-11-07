@@ -330,24 +330,24 @@ import std.stdio;
         public static DbfColumnType GetDbaseType(T)(T type)
         {
 
-            if (typeof(type) == typeid(string))
+            if (is(typeof(type) == string))
                 return DbfColumnType.Character;
-             if (typeof(type) ==  typeid(double))
+             if (is(typeof(type) == double))
             return DbfColumnType.Number;
-            /* if (typeof(type) ==  typeid((float))
+            if (is(typeof(type) == float))
                 return DbfColumnType.Number;
-             if (typeof(type) ==  typeid((bool))
+             if (is(typeof(type) == bool))
                 return DbfColumnType.Boolean;
-             if (typeof(type) ==  typeid((datetime))
+             if (is(typeof(type) == datetime))
                 return DbfColumnType.Date;
-*/
+
             throw new Exception(type.stringof ~ "  does not have a corresponding dbase type.");
 
         }
 
         public static DbfColumnType GetDbaseType(char c)
         {
-            switch (c.ToString().ToUpper())
+            switch (c.toString().ToUpper())
             {
                 case "C": return DbfColumnType.Character;
                 case "N": return DbfColumnType.Number;

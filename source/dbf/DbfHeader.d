@@ -1,5 +1,8 @@
+import national.charsets;
+import national.encoding;
 import std.stdio;
 import std.encoding;
+import std.datetime;
     /// <summary>
     /// This class represents a DBF IV file header.
     /// </summary>
@@ -116,7 +119,7 @@ import std.encoding;
         private const int _fileType = 0x03;
 
         //Date the file was last updated.
-        private DateTime _updateDate;
+        private datetime _updateDate;
 
         //Number of records in the datafile, 32bit little-endian, unsigned 
         private uint _numRecords = 0;
@@ -151,15 +154,15 @@ import std.encoding;
         private byte[] _emptyRecord = null;
 
 
-        public Encoding encoding = EncodingScheme.create("WINDOWS-1252");
+        public OneByteCodePage encoding = Windows1251;
 
 
-       // [Obsolete]
+      
         public this()
         {
         }
 
-        public this(Encoding encoding)
+        public this(OneByteCodePage encoding)
         {
             this.encoding = encoding;
         }
@@ -195,20 +198,20 @@ import std.encoding;
 
             //throw exception if the header is locked
             if (_locked)
-                throw new InvalidOperationException("This header is locked and can not be modified. Modifying the header would result in a corrupt DBF file. You can unlock the header by calling UnLock() method.");
+                throw new Exception("This header is locked and can not be modified. Modifying the header would result in a corrupt DBF file. You can unlock the header by calling UnLock() method.");
 
             //since we are breaking the spec rules about max number of fields, we should at least 
             //check that the record length stays within a number that can be recorded in the header!
             //we have 2 unsigned bytes for record length for a maximum of 65535.
             if (_recordLength + oNewCol.Length > 65535)
-                throw new ArgumentOutOfRangeException("oNewCol", "Unable to add new column. Adding this column puts the record length over the maximum (which is 65535 bytes).");
+                throw new Exception("oNewCol Unable to add new column. Adding this column puts the record length over the maximum (which is 65535 bytes).");
 
 
             //add the column
             _fields.Add(oNewCol);
 
             //update offset bits, record and header lengths
-            oNewCol._dataAddress = _recordLength;
+             oNewCol._dataAddress = _recordLength;
             _recordLength += oNewCol.Length;
             _headerLength += ColumnDescriptorSize;
 
@@ -254,7 +257,7 @@ import std.encoding;
         {
             //throw exception if the header is locked
             if (_locked)
-                throw new InvalidOperationException("This header is locked and can not be modified. Modifying the header would result in a corrupt DBF file. You can unlock the header by calling UnLock() method.");
+                throw new Exception("This header is locked and can not be modified. Modifying the header would result in a corrupt DBF file. You can unlock the header by calling UnLock() method.");
 
 
             DbfColumn oColRemove = _fields[nIndex];
@@ -440,43 +443,43 @@ import std.encoding;
         /// <remarks>
         /// See class remarks for DBF file structure.
         /// </remarks>
-        public void Write(BinaryWriter writer)
+        public void Write(File writer)
         {
 
             //write the header
             // write the output file type.
-            writer.Write(cast(byte)_fileType);
+            writer.write(cast(byte)_fileType);
 
             //Update date format is YYMMDD, which is different from the column Date type (YYYYDDMM)
-            writer.Write(cast(byte)(_updateDate.Year - 1900));
-            writer.Write(cast(byte)_updateDate.Month);
-            writer.Write(cast(byte)_updateDate.Day);
+            writer.write(cast(byte)(_updateDate.Year - 1900));
+            writer.write(cast(byte)_updateDate.Month);
+            writer.write(cast(byte)_updateDate.Day);
 
             // write the number of records in the datafile. (32 bit number, little-endian unsigned)
-            writer.Write(_numRecords);
+            writer.write(_numRecords);
 
             // write the length of the header structure.
-            writer.Write(_headerLength);
+            writer.write(_headerLength);
 
             // write the length of a record
-            writer.Write(cast(ushort)_recordLength);
+            writer.write(cast(ushort)_recordLength);
 
             // write the reserved bytes in the header
             for (int i = 0; i < 20; i++)
-                writer.Write(cast(byte)0);
+                writer.write(cast(byte)0);
 
             // write all of the header records
             byte[] byteReserved = new byte[14];  //these are initialized to 0 by default.
             foreach (field; _fields)
             {
                 char[] cname = field.Name.PadRight(11, cast(char)0).ToCharArray();
-                writer.Write(cname);
+                writer.write(cname);
 
                 // write the field type
-                writer.Write(cast(char)field.ColumnTypeChar);
+                writer.write(cast(char)field.ColumnTypeChar);
 
                 // write the field data address, offset from the start of the record.
-                writer.Write(field.DataAddress);
+                writer.write(field.DataAddress);
 
 
                 // write the length of the field.
@@ -484,26 +487,26 @@ import std.encoding;
                 if (field.ColumnType == DbfColumn.DbfColumnType.Character && field.Length > 255)
                 {
                     //treat decimal count as high byte of field length, this extends char field max to 65535
-                    writer.Write(cast(ushort)field.Length);
+                    writer.write(cast(ushort)field.Length);
 
                 }
                 else
                 {
                     // write the length of the field.
-                    writer.Write(cast(byte)field.Length);
+                    writer.write(cast(byte)field.Length);
 
                     // write the decimal count.
-                    writer.Write(cast(byte)field.DecimalCount);
+                    writer.write(cast(byte)field.DecimalCount);
                 }
 
                 // write the reserved bytes.
-                writer.Write(byteReserved);
+                writer.write(byteReserved);
 
             }
 
             // write the end of the field definitions marker
-            writer.Write(cast(byte)0x0D);
-            writer.Flush();
+            writer.write(cast(byte)0x0D);
+            //TODO: writer.Flush();
 
             //clear dirty bit
             _isDirty = false;
@@ -522,14 +525,14 @@ import std.encoding;
         /// When this function is done the position will be the first record.
         /// </summary>
         /// <param name="reader"></param>
-        public void Read(BinaryReader reader)
+        public void Read(File reader)
         {
 
             // type of reader.
-            int nFileType = reader.ReadByte();
+            int nFileType = reader.read();
 
             if (nFileType != 0x03)
-                throw new NotSupportedException("Unsupported DBF reader Type " + nFileType);
+                throw new Exception("Unsupported DBF reader Type " + nFileType);
 
             // parse the update date information.
             int year = cast(int)reader.ReadByte();
