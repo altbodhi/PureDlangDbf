@@ -103,42 +103,15 @@ import std.stdio;
         /// </summary>
         /// <param name="sPath">Full path to the file.</param>
         /// <param name="mode"></param>
-        public void Open(string sPath, FileMode mode, FileAccess access, FileShare share)
+        public void Open(string sPath, string mode)
         {
             _fileName = sPath;
-            Open(File.Open(sPath, mode, access, share));
+            Open(File(sPath,mode));
         }
 
-        /// <summary>
-        /// Open a DBF file or create a new one.
-        /// </summary>
-        /// <param name="sPath">Full path to the file.</param>
-        /// <param name="mode"></param>
-        public void Open(string sPath, FileMode mode, FileAccess access)
-        {
-            _fileName = sPath;
-            Open(File.Open(sPath, mode, access));
-        }
-
-        /// <summary>
-        /// Open a DBF file or create a new one.
-        /// </summary>
-        /// <param name="sPath">Full path to the file.</param>
-        /// <param name="mode"></param>
-        public void Open(string sPath, FileMode mode)
-        {
-            _fileName = sPath;
-            Open(File.Open(sPath, mode));
-        }
-
-
-        /// <summary>
-        /// Creates a new DBF 4 file. Overwrites if file exists! Use Open() function for more options.
-        /// </summary>
-        /// <param name="sPath"></param>
         public void Create(string sPath)
         {
-            Open(sPath, FileMode.Create, FileAccess.ReadWrite);
+            Open(sPath, "bw");
             _headerWritten = false;
 
         }
@@ -171,26 +144,10 @@ import std.stdio;
 
             //Close streams...
             //--------------------------------
-            if (_dbfFileWriter != null)
+            if (_dbfFile  != null)
             {
-                _dbfFileWriter.Flush();
-                _dbfFileWriter.Close();
+               _dbfFile.close();
             }
-
-            if (_dbfFileReader != null)
-                _dbfFileReader.Close();
-
-            if (_dbfFile != null)
-            {
-                _dbfFile.Close();
-                _dbfFile.Dispose();
-            }
-
-
-            //set streams to null
-            //--------------------------------
-            _dbfFileReader = null;
-            _dbfFileWriter = null;
             _dbfFile = null;
 
             _fileName = "";
@@ -243,7 +200,7 @@ import std.stdio;
                                     "This is a programming error, have you mixed up DBF file objects?");
 
             //DBF file reader can be null if stream is not readable...
-            if (_dbfFileReader == null)
+            if (_dbfFile == null)
                 throw new Exception("Read stream is null, either you have opened a stream that can not be " +
                                     "read from (a write-only stream) or you have not opened a stream at all.");
 
@@ -307,7 +264,7 @@ import std.stdio;
                                     "This is a programming error, have you mixed up DBF file objects?");
 
             //DBF file reader can be null if stream is not readable...
-            if (_dbfFileReader == null)
+            if (_dbfFile == null)
                 throw new Exception("ReadStream is null, either you have opened a stream that can not be " +
                                     "read from (a write-only stream) or you have not opened a stream at all.");
 
