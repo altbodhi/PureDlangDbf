@@ -1,5 +1,7 @@
 import national.charsets;
 import national.encoding;
+import DbfColumn;
+import DbfHeader;
 import std.stdio;
 import std.conv;
 import std.datetime;
@@ -49,14 +51,14 @@ import std.datetime;
 
         //array used to clear decimals, we can clear up to 40 decimals which is much more than is allowed under DBF spec anyway.
         //Note: 48 is ASCII code for 0.
-        private static  byte[] _decimalClear =  {48,48,48,48,48,48,48,48,48,48,48,48,48,48,48,
+        private static  byte[] _decimalClear =  [48,48,48,48,48,48,48,48,48,48,48,48,48,48,48,
                                                                48,48,48,48,48,48,48,48,48,48,48,48,48,48,48,
-                                                               48,48,48,48,48,48,48,48,48,48,48,48,48,48,48};
+                                                               48,48,48,48,48,48,48,48,48,48,48,48,48,48,48];
 
 
         //Warning: do not make this one static because that would not be thread safe!! The reason I have 
         //placed this here is to skip small memory allocation/deallocation which fragments memory in .net.
-        private int[] _tempIntVal = { 0 };
+        private int[] _tempIntVal = [ 0 ];
 
 
         //encoder
@@ -469,7 +471,7 @@ import std.datetime;
         /// <summary>
         /// Returns header object associated with this record.
         /// </summary>
-        @property DbfHeader Header()
+        public @property DbfHeader Header()
         {
                 return _header;
         }
@@ -517,9 +519,10 @@ import std.datetime;
         /// Writes data to stream. Make sure stream is positioned correctly because we simply write out the data to it.
         /// </summary>
         /// <param name="osw"></param>
-        protected  void Write(Stream osw)
+        protected  void Write(File osw)
         {
-            osw.Write(_data, 0, _data.Length);
+           // osw.Write(_data, 0, _data.Length);
+           osw.rawWrite(_data);
 
         }
 
@@ -528,10 +531,10 @@ import std.datetime;
         /// Writes data to stream. Make sure stream is positioned correctly because we simply write out data to it, and clear the record.
         /// </summary>
         /// <param name="osw"></param>
-        protected  void Write(Stream obw, bool bClearRecordAfterWrite)
+        protected  void Write(File obw, bool bClearRecordAfterWrite)
         {
-            obw.Write(_data, 0, _data.Length);
-
+           // obw.Write(_data, 0, _data.Length);
+            osw.rawWrite(_data);
             if (bClearRecordAfterWrite)
                 Clear();
 
@@ -543,16 +546,17 @@ import std.datetime;
         /// </summary>
         /// <param name="obr"></param>
         /// <returns></returns>
-        protected  bool Read(Stream obr)
+        protected  bool Read(File obr)
         {
-            return obr.Read(_data, 0, _data.Length) >= _data.Length;
+           // return obr.Read(_data, 0, _data.Length) >= _data.Length;
+           _data = obr.byChunk(_data.Length);
+           return  _data >= _data.Length;
         }
 
-        protected  string ReadValue(Stream obr, int colIndex)
+        protected  string ReadValue(File obr, int colIndex)
         {
             DbfColumn ocol = _header[colIndex];
             return new string(encoding.GetChars(_data, ocol.DataAddress, ocol.Length));
-
         }
 
     }

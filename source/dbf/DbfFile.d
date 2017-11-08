@@ -1,4 +1,6 @@
 import std.stdio;
+import DbfHeader;
+import DbfRecord;
 
     public class DbfFile
     {
@@ -18,7 +20,7 @@ import std.stdio;
         /// <summary>
         /// Streams to read and write to the DBF file.
         /// </summary>
-        File _dbfFile = null;
+        File _dbfFile;
        
 
       
@@ -111,7 +113,7 @@ import std.stdio;
 
         public void Create(string sPath)
         {
-            Open(sPath, "bw");
+            Open(sPath, "wb");
             _headerWritten = false;
 
         }

@@ -3,6 +3,9 @@ import national.encoding;
 import std.stdio;
 import std.encoding;
 import std.datetime;
+import DbfColumn;
+import DbfRecord;
+import DbfColumnType;
     /// <summary>
     /// This class represents a DBF IV file header.
     /// </summary>
@@ -119,7 +122,7 @@ import std.datetime;
         private const int _fileType = 0x03;
 
         //Date the file was last updated.
-        private datetime _updateDate;
+        private DateTime _updateDate;
 
         //Number of records in the datafile, 32bit little-endian, unsigned 
         private uint _numRecords = 0;
@@ -230,7 +233,7 @@ import std.datetime;
         /// </summary>
         /// <param name="sName"></param>
         /// <param name="type"></param>
-        public void AddColumn(string sName, DbfColumn.DbfColumnType type)
+        public void AddColumn(string sName, DbfColumnType type)
         {
             AddColumn(new DbfColumn(sName, type));
         }
@@ -243,7 +246,7 @@ import std.datetime;
         /// <param name="type"></param>
         /// <param name="nLength">Length of the field including decimal point and decimal numbers</param>
         /// <param name="nDecimals">Number of decimal places to keep.</param>
-        public void AddColumn(string sName, DbfColumn.DbfColumnType type, int nLength, int nDecimals)
+        public void AddColumn(string sName, DbfColumnType type, int nLength, int nDecimals)
         {
             AddColumn(new DbfColumn(sName, type, nLength, nDecimals));
         }
