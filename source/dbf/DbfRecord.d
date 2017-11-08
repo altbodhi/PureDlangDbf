@@ -5,6 +5,7 @@ import DbfHeader;
 import std.stdio;
 import std.conv;
 import std.datetime;
+import std.array;
 
     public class DbfRecord
     {
@@ -90,14 +91,14 @@ import std.datetime;
             _emptyRecord = _header.EmptyDataRecord;
             encoding = oHeader.encoding;
 
-            for (int i = 0; i < oHeader._fields.Count; i++)
+            for (int i = 0; i < oHeader._fields.length; i++)
                 _colNameToIdx[oHeader._fields[i].Name] = i;
         }
 
-          public string  get(int nColIndex)
+          public dstring  get(int nColIndex)
          {
-                DbfColumn ocol = _header[nColIndex];
-                return new string(encoding.GetChars(_data, ocol.DataAddress, ocol.Length));
+                DbfColumn ocol = _header.get(nColIndex);
+                return encoding.decode(_data);
 
         }
         
@@ -119,10 +120,10 @@ import std.datetime;
                 //if an empty value is passed, we just clear the data, and leave it blank.
                 //note: test have shown that testing for null and checking length is faster than comparing to "" empty str :)
                 //------------------------------------------------------------------------------------------------------------
-                if (string.IsNullOrEmpty(value))
+                if (value.length==0)
                 {
                     //this is like NULL data, set it to empty. i looked at SAS DBF output when a null value exists 
-                    //and empty data are output. we get the same result, so this looks good.
+                    //and  dub
                     Buffer.BlockCopy(_emptyRecord, ocol.DataAddress, _data, ocol.DataAddress, ocol.Length);
 
                 }
@@ -133,12 +134,12 @@ import std.datetime;
                     //-------------------------------------------------------------
                     if (ocolType == DbfColumn.DbfColumnType.Character)
                     {
-                        if (!_allowStringTruncate && value.Length > ocol.Length)
-                            throw new DbfDataTruncateException("Value not set. String truncation would occur and AllowStringTruncate flag is set to false. To supress this exception change AllowStringTruncate to true.");
+                        if (!_allowStringTruncate && value.length > ocol.length)
+                            throw new Exception("Value not set. String truncation would occur and AllowStringTruncate flag is set to false. To supress this exception change AllowStringTruncate to true.");
 
                         //BlockCopy copies bytes.  First clear the previous value, then set the new one.
-                        Buffer.BlockCopy(_emptyRecord, ocol.DataAddress, _data, ocol.DataAddress, ocol.Length);
-                        encoding.GetBytes(value, 0, value.Length > ocol.Length ? ocol.Length : value.Length, _data, ocol.DataAddress);
+                   //     Buffer.BlockCopy(_emptyRecord, ocol.DataAddress, _data, ocol.DataAddress, ocol.Length);
+                       _data = encoding.encode(value);//, 0, value.length > ocol.length ? ocol.length : value.Length, _data, ocol.DataAddress);
 
                     }
                     else if (ocolType == DbfColumn.DbfColumnType.Number)
@@ -151,19 +152,19 @@ import std.datetime;
                             //----------------------------------
 
                             //throw an exception if integer overflow would occur
-                            if (!_allowIntegerTruncate && value.Length > ocol.Length)
-                                throw new DbfDataTruncateException("Value not set. Integer does not fit and would be truncated. AllowIntegerTruncate is set to false. To supress this exception set AllowIntegerTruncate to true, although that is not recomended.");
+                            if (!_allowIntegerTruncate && value.length > ocol.length)
+                                throw new Exception("Value not set. Integer does not fit and would be truncated. AllowIntegerTruncate is set to false. To supress this exception set AllowIntegerTruncate to true, although that is not recomended.");
 
 
                             //clear all numbers, set to [space].
                             //-----------------------------------------------------
-                            Buffer.BlockCopy(_emptyRecord, 0, _data, ocol.DataAddress, ocol.Length);
+                           // Buffer.BlockCopy(_emptyRecord, 0, _data, ocol.DataAddress, ocol.Length);
 
 
                             //set integer part, CAREFUL not to overflow buffer! (truncate instead)
                             //-----------------------------------------------------------------------
-                            int nNumLen = value.Length > ocol.Length ? ocol.Length : value.Length;
-                            encoding.GetBytes(value, 0, nNumLen, _data, (ocol.DataAddress + ocol.Length - nNumLen));
+                            auto nNumLen = value.length > ocol.length ? ocol.length : value.length;
+                           _data = encoding.encode(value).array;
 
                         }
                         else
@@ -175,27 +176,27 @@ import std.datetime;
 
                             //break value down into integer and decimal portions
                             //--------------------------------------------------------------------------
-                            int nidxDecimal = value.IndexOf('.'); //index where the decimal point occurs
+                            auto nidxDecimal = value.indexOf('.'); //index where the decimal point occurs
                             char[] cDec = null; //decimal portion of the number
                             char[] cNum = null; //integer portion
 
                             if (nidxDecimal > -1)
                             {
-                                cDec = value.Substring(nidxDecimal + 1).Trim().ToCharArray();
-                                cNum = value.Substring(0, nidxDecimal).ToCharArray();
+                                cDec = cast(char[])value[nidxDecimal + 1..$];
+                                cNum = cast(char[])value[0.. nidxDecimal];
 
                                 //throw an exception if decimal overflow would occur
-                                if (!_allowDecimalTruncate && cDec.Length > ocol.DecimalCount)
-                                    throw new DbfDataTruncateException("Value not set. Decimal does not fit and would be truncated. AllowDecimalTruncate is set to false. To supress this exception set AllowDecimalTruncate to true.");
+                                if (!_allowDecimalTruncate && cDec.length > ocol.DecimalCount)
+                                    throw new Exception("Value not set. Decimal does not fit and would be truncated. AllowDecimalTruncate is set to false. To supress this exception set AllowDecimalTruncate to true.");
 
                             }
                             else
-                                cNum = value.ToCharArray();
+                                cNum = cast(char[])value;
 
 
                             //throw an exception if integer overflow would occur
-                            if (!_allowIntegerTruncate && cNum.Length > ocol.Length - ocol.DecimalCount - 1)
-                                throw new DbfDataTruncateException("Value not set. Integer does not fit and would be truncated. AllowIntegerTruncate is set to false. To supress this exception set AllowIntegerTruncate to true, although that is not recomended.");
+                            if (!_allowIntegerTruncate && cNum.length > ocol.length - ocol.DecimalCount - 1)
+                                throw new Exception("Value not set. Integer does not fit and would be truncated. AllowIntegerTruncate is set to false. To supress this exception set AllowIntegerTruncate to true, although that is not recomended.");
 
 
                             //------------------------------------------------------------------------------------------------------------------
@@ -203,11 +204,11 @@ import std.datetime;
                             //------------------------------------------------------------------------------------------------------------------
                                 
                             //clear all decimals, set to 0.
-                            //-----------------------------------------------------
-                            Buffer.BlockCopy(_decimalClear, 0, _data, (ocol.DataAddress + ocol.Length - ocol.DecimalCount), ocol.DecimalCount);
+                           // //-----------------------------------------------------
+                         //   Buffer.BlockCopy(_decimalClear, 0, _data, (ocol.DataAddress + ocol.Length - ocol.DecimalCount), ocol.DecimalCount);
 
                             //clear all numbers, set to [space].
-                            Buffer.BlockCopy(_emptyRecord, 0, _data, ocol.DataAddress, (ocol.Length - ocol.DecimalCount));
+                            //Buffer.BlockCopy(_emptyRecord, 0, _data, ocol.DataAddress, (ocol.Length - ocol.DecimalCount));
 
 
 
@@ -215,19 +216,19 @@ import std.datetime;
                             //-----------------------------------------------------------------------
                             if (nidxDecimal > -1)
                             {
-                                int nLen = cDec.Length > ocol.DecimalCount ? ocol.DecimalCount : cDec.Length;
-                                encoding.GetBytes(cDec, 0, nLen, _data, (ocol.DataAddress + ocol.Length - ocol.DecimalCount));
+                                //auto nLen = cDec.length > ocol.DecimalCount ? ocol.DecimalCount : cDec.length;
+                                _data = encoding.encode(cDec);
                             }
 
                             //set integer part, CAREFUL not to overflow buffer! (truncate instead)
                             //-----------------------------------------------------------------------
-                            int nNumLen = cNum.Length > ocol.Length - ocol.DecimalCount - 1 ? (ocol.Length - ocol.DecimalCount - 1) : cNum.Length;
-                            encoding.GetBytes(cNum, 0, nNumLen, _data, ocol.DataAddress + ocol.Length - ocol.DecimalCount - nNumLen - 1);
+                            auto nNumLen = cNum.length > ocol.Length - ocol.DecimalCount - 1 ? (ocol.Length - ocol.DecimalCount - 1) : cNum.length;
+                            _data = encoding.encode(cNum);//, 0, nNumLen, _data, ocol.DataAddress + ocol.Length - ocol.DecimalCount - nNumLen - 1);
 
 
                             //set decimal point
                             //-----------------------------------------------------------------------
-                            _data[ocol.DataAddress + ocol.Length - ocol.DecimalCount - 1] = cast(byte)'.';
+                            _data[ocol.DataAddress + ocol.length - ocol.DecimalCount - 1] = cast(byte)'.';
                             
 
                         }
@@ -243,18 +244,18 @@ import std.datetime;
 
 
                         // check size, throw exception if value won't fit:
-                        if (value.Length > ocol.Length)
-                            throw new DbfDataTruncateException("Value not set. Float value does not fit and would be truncated.");
+                        if (value.length > ocol.length)
+                            throw new Exception("Value not set. Float value does not fit and would be truncated.");
 
                         
                         double parsed_value =to!double(value);
                        
                         //clear value that was present previously
-                        Buffer.BlockCopy(_decimalClear, 0, _data, ocol.DataAddress, ocol.Length);
+                       // Buffer.BlockCopy(_decimalClear, 0, _data, ocol.DataAddress, ocol.Length);
 
                         //copy new value at location
-                        char[] valueAsCharArray = value.ToCharArray();
-                        encoding.GetBytes(valueAsCharArray, 0, valueAsCharArray.Length, _data, ocol.DataAddress);
+                        char[] valueAsCharArray = cast(char[])value;
+                       _data = encoding.encode(valueAsCharArray);//, 0, valueAsCharArray.Length, _data, ocol.DataAddress);
 
                     }
                     else if (ocolType == DbfColumn.DbfColumnType.Integer)
@@ -264,7 +265,7 @@ import std.datetime;
 
                         ///TODO: maybe there is a better way to copy 4 bytes from int to byte array. Some memory function or something.
                         _tempIntVal[0] = Convert.ToInt32(value);
-                        Buffer.BlockCopy(_tempIntVal, 0, _data, ocol.DataAddress, 4);
+                       // Buffer.BlockCopy(_tempIntVal, 0, _data, ocol.DataAddress, 4);
 
                     }
                     else if (ocolType == DbfColumn.DbfColumnType.Memo)
@@ -272,7 +273,7 @@ import std.datetime;
                         //copy 10 digits...
                         ///TODO: implement MEMO
 
-                        throw new NotImplementedException("Memo data type functionality not implemented yet!");
+                        throw new Exception("Memo data type functionality not implemented yet!");
 
                     }
                     else if (ocolType == DbfColumn.DbfColumnType.Boolean)

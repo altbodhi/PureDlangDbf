@@ -8,6 +8,9 @@ import DbfRecord;
 static import std.conv;
 import std.uni;
 import std.range;
+import std.math;
+import  DbfColumn;
+import std.string;
     /// <summary>
     /// This class represents a DBF IV file header.
     /// </summary>
@@ -554,7 +557,7 @@ import std.range;
 
             // read the length of the header structure.
              byte_array = reader.byChunk(4).front;
-            _headerLength = ((byte_array[0] & 0xFF) << 24) + ((byte_array[1] & 0xFF) << 16) + ((byte_array[2] & 0xFF) << 8) + (byte_array[3] & 0xFF);
+            _headerLength =cast(ushort) (((byte_array[0] & 0xFF) << 24) + ((byte_array[1] & 0xFF) << 16) + ((byte_array[2] & 0xFF) << 8) + (byte_array[3] & 0xFF));
 
             // read the length of a record
              byte_array = reader.byChunk(2).front;
@@ -570,21 +573,20 @@ import std.range;
             int nDataOffset = 1;
 
             // read all of the header records
-            _fields = DbfColumn[nNumFields];
+            //_fields = DbfColumn[nNumFields];
             for (int i = 0; i < nNumFields; i++)
             {
 
                 // read the field name				
-                char[] buffer = new char[11];
-                buffer = reader.byChunk(11).front;
+                ubyte[] buffer = reader.byChunk(11).front;
                 string sFieldName = std.conv.to!string(buffer);
-                int nullPoint = sFieldName.IndexOf(cast(char)0);
+                auto nullPoint = sFieldName.indexOf(cast(char)0);
                 if (nullPoint != -1)
-                    sFieldName = sFieldName.Substring(0, nullPoint);
+                    sFieldName = sFieldName[0..nullPoint];
 
 
                 //read the field type
-                char cDbaseType = cast(char)reader.ReadByte();
+                char cDbaseType = cast(char)reader.byChunk(1).front[0];
 
                 // read the field data address, offset from the start of the record.
                 int nFieldDataAddress = reader.ReadInt32();
@@ -617,7 +619,7 @@ import std.range;
                 reader.ReadBytes(14);
 
                 //Create and add field to collection
-                _fields.Add(new DbfColumn(sFieldName, DbfColumn.GetDbaseType(cDbaseType), nFieldLength, nDecimals, nDataOffset));
+                _fields ~= DbfColumn(sFieldName, DbfColumn.GetDbaseType(cDbaseType), nFieldLength, nDecimals, nDataOffset);
 
                 // add up address information, you can not trust the address recorded in the DBF file...
                 nDataOffset += nFieldLength;
@@ -631,7 +633,7 @@ import std.range;
             //read any extra header bytes...move to first record
             //equivalent to reader.BaseStream.Seek(mHeaderLength, SeekOrigin.Begin) except that we are not using the seek function since
             //we need to support streams that can not seek like web connections.
-            int nExtraReadBytes = _headerLength - (FileDescriptorSize + (ColumnDescriptorSize * _fields.length));
+            auto nExtraReadBytes = _headerLength - (FileDescriptorSize + (ColumnDescriptorSize * _fields.length));
             if (nExtraReadBytes > 0)
                 reader.byChunk(nExtraReadBytes);
 

@@ -1,6 +1,6 @@
 import std.stdio;
 import std.uni;
-enum DbfColumnType
+public enum DbfColumnType
 {
 
     /// <summary>
@@ -326,7 +326,7 @@ public class DbfColumn
 
     }
 
-    public static DbfColumnType GetDbaseType(char c)
+    public static auto GetDbaseType(char c)
     {
         string line = ""~c;
         final switch (line.toUpper)
