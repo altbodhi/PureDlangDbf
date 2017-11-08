@@ -5,7 +5,9 @@ import std.encoding;
 import std.datetime;
 import DbfColumn;
 import DbfRecord;
-
+static import std.conv;
+import std.uni;
+import std.range;
     /// <summary>
     /// This class represents a DBF IV file header.
     /// </summary>
@@ -209,9 +211,9 @@ import DbfRecord;
             if (_recordLength + oNewCol.Length > 65535)
                 throw new Exception("oNewCol Unable to add new column. Adding this column puts the record length over the maximum (which is 65535 bytes).");
 
-
+//TODO: may be nor work
             //add the column
-            _fields.Add(oNewCol);
+            _fields ~= oNewCol;
 
             //update offset bits, record and header lengths
              oNewCol._dataAddress = _recordLength;
@@ -264,7 +266,8 @@ import DbfRecord;
 
 
             DbfColumn oColRemove = _fields[nIndex];
-            _fields.RemoveAt(nIndex);
+            _fields = _fields[0..nIndex] ~ _fields [nIndex+1..$];
+   
 
 
             oColRemove._dataAddress = 0;
@@ -274,7 +277,7 @@ import DbfRecord;
             //if you remove a column offset shift for each of the columns 
             //following the one removed, we need to update those offsets.
             int nRemovedColLen = oColRemove.Length;
-            for (int i = nIndex; i < _fields.Count; i++)
+            for (int i = nIndex; i < _fields.length; i++)
                 _fields[i]._dataAddress -= nRemovedColLen;
 
             //clear the empty record
@@ -319,18 +322,18 @@ import DbfRecord;
         public int FindColumn(string sName)
         {
 
-            if (_columnNameIndex == null)
+            if (_columnNameIndex.length < 1)
             {
-                _columnNameIndex = new int[string];
+               
 
                 //create a new index
-                for (int i = 0; i < _fields.Count; i++)
+                for (int i = 0; i < _fields.length; i++)
                 {
-                    _columnNameIndex[_fields[i].Name.ToUpper()] = i;
+                    _columnNameIndex[_fields[i].Name.toUpper] = i;
                 }
             }
 
-            int columnIndex = _columnNameIndex[sName.ToUpper()];
+            int columnIndex = _columnNameIndex[sName.toUpper];
              return columnIndex;
 
         }
@@ -352,7 +355,7 @@ import DbfRecord;
                  if(_emptyRecord==null)
                  {
                      for(auto i = 0;i<_recordLength;i++)
-                        _emptyRecord[i] = to!byte(' ');
+                        _emptyRecord[i] = std.conv.to!byte(' ');
                  }
                  return  _emptyRecord;
         
@@ -362,9 +365,9 @@ import DbfRecord;
         /// <summary>
         /// Returns Number of columns in this dbf header.
         /// </summary>
-        @property int ColumnCount()
+        @property ulong ColumnCount()
         {
-             return _fields.Count; 
+             return _fields.length; 
 
         }
 
@@ -454,9 +457,9 @@ import DbfRecord;
             writer.write(cast(byte)_fileType);
 
             //Update date format is YYMMDD, which is different from the column Date type (YYYYDDMM)
-            writer.write(cast(byte)(_updateDate.Year - 1900));
-            writer.write(cast(byte)_updateDate.Month);
-            writer.write(cast(byte)_updateDate.Day);
+            writer.write(cast(byte)(_updateDate.year - 1900));
+            writer.write(cast(byte)_updateDate.month);
+            writer.write(cast(byte)_updateDate.day);
 
             // write the number of records in the datafile. (32 bit number, little-endian unsigned)
             writer.write(_numRecords);
@@ -475,7 +478,8 @@ import DbfRecord;
             byte[] byteReserved = new byte[14];  //these are initialized to 0 by default.
             foreach (field; _fields)
             {
-                char[] cname = field.Name.PadRight(11, cast(char)0).ToCharArray();
+                //TODO: char[] cname
+                auto cname = field.Name.padRight(11, cast(char)0);
                 writer.write(cname);
 
                 // write the field type
@@ -532,28 +536,32 @@ import DbfRecord;
         {
 
             // type of reader.
-            int nFileType = reader.read();
+            int nFileType = cast(int)reader.byChunk(1).front[0];
 
             if (nFileType != 0x03)
-                throw new Exception("Unsupported DBF reader Type " + nFileType);
+                throw new Exception("Unsupported DBF reader Type " ~ std.conv.to!string(nFileType));
 
             // parse the update date information.
-            int year = cast(int)reader.ReadByte();
-            int month = cast(int)reader.ReadByte();
-            int day = cast(int)reader.ReadByte();
-            _updateDate = new DateTime(year + 1900, month, day);
-
+            int year = cast(int)reader.byChunk(1).front[0];
+            int month = cast(int)reader.byChunk(1).front[0];
+            int day = cast(int)reader.byChunk(1).front[0];
+            _updateDate = DateTime(year + 1900, month, day);
+            
             // read the number of records.
-            _numRecords = reader.ReadUInt32();
+           auto byte_array = reader.byChunk(4).front;
+            _numRecords = ((byte_array[0] & 0xFF) << 24) + ((byte_array[1] & 0xFF) << 16) + ((byte_array[2] & 0xFF) << 8) + (byte_array[3] & 0xFF);
+
 
             // read the length of the header structure.
-            _headerLength = reader.ReadUInt16();
+             byte_array = reader.byChunk(4).front;
+            _headerLength = ((byte_array[0] & 0xFF) << 24) + ((byte_array[1] & 0xFF) << 16) + ((byte_array[2] & 0xFF) << 8) + (byte_array[3] & 0xFF);
 
             // read the length of a record
-            _recordLength = reader.ReadInt16();
+             byte_array = reader.byChunk(2).front;
+            _recordLength =  ((byte_array[0] & 0xFF) << 8) + (byte_array[1] & 0xFF);
 
             // skip the reserved bytes in the header.
-            reader.ReadBytes(20);
+            auto skiped = reader.byChunk(20).front;
 
             // calculate the number of Fields in the header
             int nNumFields = (_headerLength - FileDescriptorSize) / ColumnDescriptorSize;
@@ -568,8 +576,8 @@ import DbfRecord;
 
                 // read the field name				
                 char[] buffer = new char[11];
-                buffer = reader.ReadChars(11);
-                string sFieldName = new string(buffer);
+                buffer = reader.byChunk(11).front;
+                string sFieldName = std.conv.to!string(buffer);
                 int nullPoint = sFieldName.IndexOf(cast(char)0);
                 if (nullPoint != -1)
                     sFieldName = sFieldName.Substring(0, nullPoint);
@@ -623,9 +631,9 @@ import DbfRecord;
             //read any extra header bytes...move to first record
             //equivalent to reader.BaseStream.Seek(mHeaderLength, SeekOrigin.Begin) except that we are not using the seek function since
             //we need to support streams that can not seek like web connections.
-            int nExtraReadBytes = _headerLength - (FileDescriptorSize + (ColumnDescriptorSize * _fields.Count));
+            int nExtraReadBytes = _headerLength - (FileDescriptorSize + (ColumnDescriptorSize * _fields.length));
             if (nExtraReadBytes > 0)
-                reader.ReadBytes(nExtraReadBytes);
+                reader.byChunk(nExtraReadBytes);
 
 
 
@@ -633,13 +641,13 @@ import DbfRecord;
             //sometimes the header does not contain the correct record count
             //if we are reading the file from the web, we have to use ReadNext() functions anyway so
             //Number of records is not so important and we can trust the DBF to have it stored correctly.
-            if (reader.BaseStream.CanSeek && _numRecords == 0)
+           // if (reader.BaseStream.CanSeek && _numRecords == 0)
             {
                 //notice here that we subtract file end byte which is supposed to be 0x1A,
                 //but some DBF files are incorrectly written without this byte, so we round off to nearest integer.
                 //that gives a correct result with or without ending byte.
                 if (_recordLength > 0)
-                    _numRecords = cast(uint)Math.Round((cast(double)(reader.BaseStream.Length - _headerLength - 1) / _recordLength));
+                    _numRecords = cast(uint)round((cast(double)(reader.size - _headerLength - 1) / _recordLength));
 
             }
 

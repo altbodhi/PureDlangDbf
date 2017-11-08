@@ -111,7 +111,7 @@ import std.datetime;
         public void set(int nColIndex, string value)
         {
 
-                DbfColumn ocol = _header[nColIndex];
+                DbfColumn ocol = _header.get(nColIndex);
                 DbfColumn.DbfColumnType ocolType = ocol.ColumnType;
 
 
@@ -519,7 +519,7 @@ import std.datetime;
         /// Writes data to stream. Make sure stream is positioned correctly because we simply write out the data to it.
         /// </summary>
         /// <param name="osw"></param>
-        protected  void Write(File osw)
+        public  void Write(File osw)
         {
            // osw.Write(_data, 0, _data.Length);
            osw.rawWrite(_data);
@@ -531,7 +531,7 @@ import std.datetime;
         /// Writes data to stream. Make sure stream is positioned correctly because we simply write out data to it, and clear the record.
         /// </summary>
         /// <param name="osw"></param>
-        protected  void Write(File obw, bool bClearRecordAfterWrite)
+        public  void Write(File obw, bool bClearRecordAfterWrite)
         {
            // obw.Write(_data, 0, _data.Length);
             osw.rawWrite(_data);
@@ -546,14 +546,14 @@ import std.datetime;
         /// </summary>
         /// <param name="obr"></param>
         /// <returns></returns>
-        protected  bool Read(File obr)
+        public  bool Read(File obr)
         {
            // return obr.Read(_data, 0, _data.Length) >= _data.Length;
            _data = obr.byChunk(_data.Length);
            return  _data >= _data.Length;
         }
 
-        protected  string ReadValue(File obr, int colIndex)
+        public  string ReadValue(File obr, int colIndex)
         {
             DbfColumn ocol = _header[colIndex];
             return new string(encoding.GetChars(_data, ocol.DataAddress, ocol.Length));

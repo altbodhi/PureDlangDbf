@@ -1,4 +1,5 @@
 import std.stdio;
+import std.uni;
 enum DbfColumnType
 {
 
@@ -71,7 +72,7 @@ enum DbfColumnType
     /// <summary>
     /// O       Double         8 bytes - no conversions, stored as a double.
     /// </summary>
-    Double = 8
+   // Double = 8
 
 }
 
@@ -247,7 +248,7 @@ public class DbfColumn
     /// </summary>
     @property char ColumnTypeChar()
     {
-        switch (_type)
+        final switch (_type)
         {
         case DbfColumnType.Number:
             return 'N';
@@ -327,7 +328,8 @@ public class DbfColumn
 
     public static DbfColumnType GetDbaseType(char c)
     {
-        switch (c.toString().ToUpper())
+        string line = ""~c;
+        final switch (line.toUpper)
         {
         case "C":
             return DbfColumnType.Character;

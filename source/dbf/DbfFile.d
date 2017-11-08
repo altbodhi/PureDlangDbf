@@ -1,6 +1,13 @@
+import national.charsets;
+import national.encoding;
 import std.stdio;
 import DbfHeader;
 import DbfRecord;
+import DbfColumn;
+import std.math;
+import std.array;
+import std.conv;
+import std.string;
 
     public class DbfFile
     {
@@ -44,13 +51,14 @@ import DbfRecord;
         protected bool _isForwardOnly = false;
         protected bool _isReadOnly = false;
 
+        private OneByteCodePage encoding;
 
        
        
 
-        public this()
+        public this(OneByteCodePage _encoding = Windows1251)
         {
-            _header = DbfHeader;
+            this.encoding = _encoding;
         }
 
         /// <summary>
@@ -61,7 +69,7 @@ import DbfRecord;
         /// <param name="ofs"></param>
         public void Open(File ofs)
         {
-            if (_dbfFile != null)
+            if (_dbfFile.getFP() != null)
                 Close();
 
             _dbfFile = ofs;
@@ -70,16 +78,16 @@ import DbfRecord;
             //assume header is not written
             _headerWritten = false;
             //read the header
-            if (ofs.CanRead)
+            if (ofs.size > 0)
             {
                 //try to read the header...
                 try
                 {
-                    _header.Read(_dbfFileReader);
+                    _header.Read(_dbfFile);
                     _headerWritten = true;
 
                 }
-                catch (EndOfStreamException)
+                catch (Exception)
                 {
                     //could not read header, file is empty
                     _header = new DbfHeader(encoding);
@@ -89,10 +97,12 @@ import DbfRecord;
 
             }
 
-            if (_dbfFile != null)
+            if (_dbfFile.getFP() != null)
             {
-                _isReadOnly = !_dbfFile.CanWrite;
-                _isForwardOnly = !_dbfFile.CanSeek;
+               // _isReadOnly = !_dbfFile.CanWrite;
+                _isReadOnly = true;
+                _isForwardOnly = true;
+                //_isForwardOnly = !_dbfFile.CanSeek;
             }
 
 
@@ -146,11 +156,11 @@ import DbfRecord;
 
             //Close streams...
             //--------------------------------
-            if (_dbfFile  != null)
+            if (_dbfFile.getFP()  != null)
             {
                _dbfFile.close();
             }
-            _dbfFile = null;
+           // _dbfFile = null;
 
             _fileName = "";
 
@@ -197,13 +207,13 @@ import DbfRecord;
             //check if we can fill this record with data. it must match record size specified by header and number of columns.
             //we are not checking whether it comes from another DBF file or not, we just need the same structure. Allow flexibility but be safe.
             if (oFillRecord.Header != _header && (oFillRecord.Header.ColumnCount != _header.ColumnCount || oFillRecord.Header.RecordLength != _header.RecordLength))
-                throw new Exception("Record parameter does not have the same size and number of columns as the " +
-                                    "header specifies, so we are unable to read a record into oFillRecord. " +
+                throw new Exception("Record parameter does not have the same size and number of columns as the " ~
+                                    "header specifies, so we are unable to read a record into oFillRecord. " ~
                                     "This is a programming error, have you mixed up DBF file objects?");
 
             //DBF file reader can be null if stream is not readable...
-            if (_dbfFile == null)
-                throw new Exception("Read stream is null, either you have opened a stream that can not be " +
+            if (_dbfFile.getFP() is null)
+                throw new Exception("Read stream is null, either you have opened a stream that can not be " ~
                                     "read from (a write-only stream) or you have not opened a stream at all.");
 
             //read next record...
@@ -218,7 +228,7 @@ import DbfRecord;
                     _recordsReadCount++;
                 }
                 else
-                    oFillRecord.RecordIndex = (cast(int)((_dbfFile.Position - _header.HeaderLength) / _header.RecordLength)) - 1;
+                    oFillRecord.RecordIndex = (cast(int)((_dbfFile.tell - _header.HeaderLength) / _header.RecordLength)) - 1;
 
             }
 
@@ -261,13 +271,13 @@ import DbfRecord;
             //check if we can fill this record with data. it must match record size specified by header and number of columns.
             //we are not checking whether it comes from another DBF file or not, we just need the same structure. Allow flexibility but be safe.
             if (oFillRecord.Header != _header && (oFillRecord.Header.ColumnCount != _header.ColumnCount || oFillRecord.Header.RecordLength != _header.RecordLength))
-                throw new Exception("Record parameter does not have the same size and number of columns as the " +
-                                    "header specifies, so we are unable to read a record into oFillRecord. " +
+                throw new Exception("Record parameter does not have the same size and number of columns as the " ~
+                                    "header specifies, so we are unable to read a record into oFillRecord. "~
                                     "This is a programming error, have you mixed up DBF file objects?");
 
             //DBF file reader can be null if stream is not readable...
-            if (_dbfFile == null)
-                throw new Exception("ReadStream is null, either you have opened a stream that can not be " +
+            if (_dbfFile.getFP() == null)
+                throw new Exception("ReadStream is null, either you have opened a stream that can not be " ~
                                     "read from (a write-only stream) or you have not opened a stream at all.");
 
 
@@ -277,11 +287,11 @@ import DbfRecord;
 
             //check whether requested record exists. Subtract 1 from file length (there is a terminating character 1A at the end of the file)
             //so if we hit end of file, there are no more records, so return false;
-            if (index < 0 || _dbfFile.Length - 1 <= nSeekToPosition)
+            if (index < 0 || _dbfFile.size - 1 <= nSeekToPosition)
                 return false;
 
             //move to record and read
-            _dbfFile.Seek(nSeekToPosition, SeekOrigin.Begin);
+            _dbfFile.seek(nSeekToPosition, 0);
 
             //read the record
             bool bRead = oFillRecord.Read(_dbfFile);
@@ -292,12 +302,12 @@ import DbfRecord;
 
         }
 
-        public bool ReadValue(int rowIndex, int columnIndex, out string result)
+        public bool ReadValue(int rowIndex, int columnIndex, out dstring result)
         {
 
-            result = String.Empty;
+            result = "";
 
-            DbfColumn ocol = _header[columnIndex];
+            DbfColumn ocol = _header.get(columnIndex);
 
             //move to the specified record, note that an exception will be thrown is stream is not seekable! 
             //This is ok, since we provide a function to check whether the stream is seekable. 
@@ -305,16 +315,16 @@ import DbfRecord;
 
             //check whether requested record exists. Subtract 1 from file length (there is a terminating character 1A at the end of the file)
             //so if we hit end of file, there are no more records, so return false;
-            if (rowIndex < 0 || _dbfFile.Length - 1 <= nSeekToPosition)
+            if (rowIndex < 0 || _dbfFile.size - 1 <= nSeekToPosition)
                 return false;
 
             //move to position and read
-            _dbfFile.Seek(nSeekToPosition, SeekOrigin.Begin);
+            _dbfFile.seek(nSeekToPosition, 0);
 
             //read the value
-            byte[] data = new byte[ocol.Length];
-            _dbfFile.Read(data, 0, ocol.Length);
-            result = new string(encoding.GetChars(data, 0, ocol.Length));
+            ubyte[] data = new ubyte[ocol.Length];
+            data =  _dbfFile.byChunk(data.length).front;
+            result = encoding.decode(data).array;
 
             return true;
         }
@@ -353,26 +363,26 @@ import DbfRecord;
             //if this is a new record (RecordIndex should be -1 in that case)
             if (orec.RecordIndex < 0)
             {
-                if (_dbfFileWriter.BaseStream.CanSeek)
-                {
+               // if (_dbfFileWriter.BaseStream.CanSeek)
+             //   {
                     //calculate number of records in file. do not rely on header's RecordCount property since client can change that value.
                     //also note that some DBF files do not have ending 0x1A byte, so we subtract 1 and round off 
                     //instead of just cast since cast would just drop decimals.
-                    int nNumRecords = cast(int)Math.Round((cast(double)(_dbfFile.Length - _header.HeaderLength - 1) / _header.RecordLength));
+                    int nNumRecords = cast(int)round((cast(double)(_dbfFile.size - _header.HeaderLength - 1) / _header.RecordLength));
                     if (nNumRecords < 0)
                         nNumRecords = 0;
 
                     orec.RecordIndex = nNumRecords;
                     Update(orec);
-                    _header.RecordCount++;
+                    _header.RecordCount= _header.RecordCount+1;
 
-                }
+               /* }
                 else
                 {
                     //we can not position this stream, just write out the new record.
                     orec.Write(_dbfFile);
                     _header.RecordCount++;
-                }
+                }*/
             }
             else
                 Update(orec);
@@ -412,13 +422,13 @@ import DbfRecord;
             //Check if this record matches record size specified by header and number of columns. 
             //Client can pass a record from another DBF that is incompatible with this one and that would corrupt the file.
             if (orec.Header != _header && (orec.Header.ColumnCount != _header.ColumnCount || orec.Header.RecordLength != _header.RecordLength))
-                throw new Exception("Record parameter does not have the same size and number of columns as the " +
-                                    "header specifies. Writing this record would corrupt the DBF file. " +
+                throw new Exception("Record parameter does not have the same size and number of columns as the " ~
+                                    "header specifies. Writing this record would corrupt the DBF file. " ~
                                     "This is a programming error, have you mixed up DBF file objects?");
 
             //DBF file writer can be null if stream is not writable to...
-            if (_dbfFileWriter == null)
-                throw new Exception("Write stream is null. Either you have opened a stream that can not be " +
+            if (_dbfFile.getFP() == null)
+                throw new Exception("Write stream is null. Either you have opened a stream that can not be "~
                                     "writen to (a read-only stream) or you have not opened a stream at all.");
 
 
@@ -428,11 +438,11 @@ import DbfRecord;
 
             //check whether we can seek to this position. Subtract 1 from file length (there is a terminating character 1A at the end of the file)
             //so if we hit end of file, there are no more records, so return false;
-            if (_dbfFile.Length < nSeekToPosition)
+            if (_dbfFile.size < nSeekToPosition)
                 throw new Exception("Invalid record position. Unable to save record.");
 
             //move to record start
-            _dbfFile.Seek(nSeekToPosition, SeekOrigin.Begin);
+            _dbfFile.seek(nSeekToPosition, 0);
 
             //write
             orec.Write(_dbfFile);
@@ -451,15 +461,14 @@ import DbfRecord;
 
             //update header if possible
             //--------------------------------
-            if (_dbfFileWriter != null)
+            if (_dbfFile.getFP() != null)
             {
-                if (_dbfFileWriter.BaseStream.CanSeek)
-                {
-                    _dbfFileWriter.Seek(0, SeekOrigin.Begin);
-                    _header.Write(_dbfFileWriter);
+               
+                    _dbfFile.seek(0, 0);
+                    _header.Write(_dbfFile);
                     _headerWritten = true;
                     return true;
-                }
+             /*   }
                 else
                 {
                     //if stream can not seek, then just write it out and that's it.
@@ -468,7 +477,7 @@ import DbfRecord;
 
                     _headerWritten = true;
 
-                }
+                }*/
             }
 
             return false;
