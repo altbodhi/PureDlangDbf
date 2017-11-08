@@ -17,7 +17,7 @@ void main(string[] args)
 	/*dstring s = "Жил-были дед да баба.";
 	auto cp1251 = Windows1251.encode(s).array;
 	write("1251.txt",cp1251);*/
-	auto db = new DbfFile();
+	//dauto db = new DbfFile();
 	//new DbfColumn("fio", DbfColumnType.Character, 100, 0);
 	//write(col);
 

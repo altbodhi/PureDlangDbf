@@ -5,7 +5,7 @@ import std.encoding;
 import std.datetime;
 import DbfColumn;
 import DbfRecord;
-import DbfColumnType;
+
     /// <summary>
     /// This class represents a DBF IV file header.
     /// </summary>
