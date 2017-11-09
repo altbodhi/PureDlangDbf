@@ -1,15 +1,5 @@
 import std.stdio;
-//import national.charsets;
-//import national.encoding;
-import std.array;
-import std.file;	
-import std.string;
-
-import DbfFile;
-import DbfRecord;
-import DbfHeader;
-import DbfColumn;
-
+import Dbf;
 
 void main(string[] args)
 {
@@ -20,6 +10,11 @@ void main(string[] args)
 	//dauto db = new DbfFile();
 	//new DbfColumn("fio", DbfColumnType.Character, 100, 0);
 	//write(col);
-
-
+	 auto reader = new DbfReader();
+     reader.openDbf("PIndx16.dbf");
+	 writeln("version File = ",reader.versionDbf());
+	 writeln("lastUpdate = ",reader.lastUpdate());
+	 writeln("recordCount = ",reader.recordCount());
+	 writeln("headSize = ",reader.headSize());
+	  writeln("recordSize = ",reader.recordSize());
 }
