@@ -17,7 +17,7 @@ class DbfReader
     /**
     * Windows1251 by default or IBM866(for example, see charsets.d)
     **/
-    this(OneByteCodePage _enc = Windows1251)
+    this(OneByteCodePage _enc)
     {
         enc = _enc;
     }
@@ -110,7 +110,10 @@ class DbfReader
             int point = 1;
             foreach (fi; fieldInfo)
             {
-                row[fi.name] = enc.decode(a[point .. point + fi.len]).array;
+                auto from = point;
+                auto to = from + fi.len - 1;
+                writeln(fi.name, " f = ", from, " t = ", to);
+                row[fi.name] = strip(enc.decode(a[from .. to]).array);
                 point += fi.len;
             }
             rows ~= row;
