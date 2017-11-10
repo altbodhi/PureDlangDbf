@@ -6,7 +6,5 @@
 	"description": "Pure dlang dbf library for read and write with one byte encoding",
 	"copyright": "Copyright © 2017, noname",
 	"license": "MIT",
-	"stringImportPaths" :["source"],
-	"dependencies" :{},
-	"dflags": []
+	"stringImportPaths" :["source"]
 }
