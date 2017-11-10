@@ -26,9 +26,18 @@ void main(string[] args)
 	}
 	//	writeln("sum len = ", recSize);
 
-	reader.loadRows();
+	reader.loadRows(10);
 	reader.exportToCsv("db.csv");
 
 	writeln("loaded rows = ", reader.rows.length);
+import gtk.MainWindow;
+import gtk.Label;
+import gtk.Main;
+Main.init(args);
+	MainWindow win = new MainWindow("Hello World");
+	win.setDefaultSize(200, 100);
+	win.add(new Label("Hello World"));
+	win.showAll();
 
+	Main.run();
 }
