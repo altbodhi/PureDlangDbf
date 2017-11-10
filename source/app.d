@@ -7,39 +7,28 @@ void main(string[] args)
 {
 	auto reader = new DbfReader(IBM866);
 	reader.openDbf("PIndx16.dbf");
+	writeln("recordCount = ", reader.recordCount);
+	writeln("size File = ", reader.dbSize);
 	writeln("version File = ", reader.versionDbf);
 	writeln("lastUpdate = ", reader.lastUpdate);
-	writeln("recordCount = ", reader.recordCount);
+
 	writeln("headSize = ", reader.headSize);
 	writeln("recordSize = ", reader.recordSize);
 	writeln("fieldCount = ", reader.fieldCount);
+
 	reader.readFieldInfo();
-	int recSize = 0;
+	//	int recSize = 0;
 	foreach (i, fi; reader.fieldInfo)
 	{
-		writeln("[", i, "] name = ", fi.name, "; type = ", fi.type, "; len = ", fi.len);
-		recSize += fi.len;
+		writeln("[", i, "] name = ", fi.name, "; type = ", fi.type, "; len = ",
+				fi.len, "; offSet = ", fi.offSet);
+		//	recSize += fi.len;
 	}
-	writeln("sum len = ", recSize);
+	//	writeln("sum len = ", recSize);
 
-	reader.loadRows(1000);
+	reader.loadRows();
+	reader.exportToCsv("db.csv");
 
-	auto report = File("db.csv", "w");
-
-	foreach (key; reader.rows[0].keys)
-		report.write(key, ";");
-	report.write("\n\r");
-
-	foreach (row; reader.rows)
-	{
-		foreach (key; row.keys)
-		{
-			writeln(key, " = ", row[key]);
-			report.write(row[key], ";");
-		}
-		report.write("\n\r");
-	}
-	report.close();
 	writeln("loaded rows = ", reader.rows.length);
 
 }

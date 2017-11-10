@@ -27,6 +27,11 @@ class DbfReader
         db = File(path, "r");
     }
 
+    @property ulong dbSize()
+    {
+        return db.size;
+    }
+
     @property int versionDbf()
     {
         db.seek(0);
@@ -44,13 +49,23 @@ class DbfReader
         return DateTime(year < 70 ? year + 2000 : year + 1900, mm, dd);
     }
 
-    private uint _recordCount = -1;
-    @property uint recordCount()
+    private int _recordCount = -1;
+    @property int recordCount()
     {
         if (_recordCount < 0)
         {
-            db.seek(4);
-            _recordCount = Int32();
+            if (recordSize > 0)
+            {
+                import std.math;
+
+                _recordCount = cast(int) round(cast(double)(db.size - headSize - 1) / recordSize);
+            }
+            else
+            {
+                //FIXME: -- не всегда верно определяет значение!!!
+                db.seek(4);
+                _recordCount = Int32();
+            }
         }
         return _recordCount;
     }
@@ -86,14 +101,19 @@ class DbfReader
 
     void readFieldInfo()
     {
-
+        int _start = 1; //first byte mark deleted
         for (int i = 1; i <= fieldCount; i++)
         {
             db.seek(i * 32);
             ubyte[] b;
             b.length = 33;
             auto a = db.rawRead(b);
-            fieldInfo ~= FieldInfo(enc.decode(a[0 .. 10]).array, a[11], cast(int) a[16]);
+            auto name = enc.decode(a[0 .. 10]).array;
+            char type = a[11];
+            int len = cast(int) a[16];
+            int offSet = _start;
+            fieldInfo ~= FieldInfo(i, name, type, len, offSet);
+            _start = _start + len;
         }
     }
 
@@ -101,20 +121,17 @@ class DbfReader
     {
         for (int i = 0; i < (max > 0 ? max : recordCount); i++)
         {
-            db.seek(32 + headSize + i * recordSize);
+            //db.seek(32 + headSize + i * recordSize);
+            db.seek(headSize + i * recordSize);
             ubyte[] b;
             b.length = recordSize;
             auto a = db.rawRead(b);
             dstring[dstring] row;
-            row["[*]"] = enc.decode(a[0 .. 0]).array;
-            int point = 1;
+            row["*"] = enc.decode(a).array; //[0 .. 0]
             foreach (fi; fieldInfo)
             {
-                auto from = point;
-                auto to = from + fi.len - 1;
-                writeln(fi.name, " f = ", from, " t = ", to);
-                row[fi.name] = strip(enc.decode(a[from .. to]).array);
-                point += fi.len;
+                row[fi.name] = strip(enc.decode(a[fi.offSet .. fi.offSet + fi.len]).array);
+                //          writefln("[%s = %s]", fi.name, row[fi.name]);
             }
             rows ~= row;
         }
@@ -144,11 +161,36 @@ class DbfReader
         return cast(uint) data[0];
     }
 
+    void exportToCsv(string fn)
+    {
+        ubyte[] data;
+        data ~= "*;";
+        foreach (fi; fieldInfo)
+            data ~= Windows1251.encode(fi.name ~ ";").array;
+        data ~= "\r\n";
+
+        foreach (row; rows)
+        {
+            auto mark = row["*"].length > 0 ? "-" : "+";
+            data ~= mark ~ ";";
+            foreach (fi; fieldInfo)
+            {
+                data ~= Windows1251.encode(row[fi.name] ~ ";").array;
+            }
+            data ~= "\r\n";
+        }
+        auto report = File(fn, "w");
+        report.rawWrite(data);
+        report.close();
+    }
+
 }
 
 struct FieldInfo
 {
+    int order;
     dstring name;
     char type;
     int len;
+    uint offSet;
 }
