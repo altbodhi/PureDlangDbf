@@ -184,6 +184,34 @@ class DbfReader
         report.close();
     }
 
+    void exportToHtml(string fn)
+    {
+        auto fmt = import("index.html");
+        auto file = File(fn, "w");
+        auto res = "<tr>";
+        res ~= "<td>N</td>";
+        res ~= "<td>*</td>";
+        foreach (fi; fieldInfo)
+            res ~= std.conv.to!string("<td>" ~ fi.name ~ "</td>");
+        res ~= "</tr>";
+        int count = 0;
+        foreach (row; rows)
+        {
+            res ~= "<tr>";
+            res ~= "<td>" ~ std.conv.to!string(++count) ~ "</td>";
+            auto mark = row["*"].length > 0 ? "-" : "+";
+            res ~= "<td>" ~ mark ~ "</td>";
+            foreach (fi; fieldInfo)
+            {
+                res ~= std.conv.to!string("<td>" ~ row[fi.name] ~ "</td>");
+            }
+            res ~= "</tr>";
+        }
+        file.writef(fmt, db.name, res);
+        file.close();
+
+    }
+
 }
 
 struct FieldInfo
