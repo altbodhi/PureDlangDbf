@@ -119,7 +119,7 @@ class DbfReader
 
     void loadRows(int max = 0)
     {
-        for (int i = 0; i < (max > 0 ? max : recordCount); i++)
+        for (int i = 0; i < (max > 0 && max < recordCount ? max : recordCount); i++)
         {
             //db.seek(32 + headSize + i * recordSize);
             db.seek(headSize + i * recordSize);

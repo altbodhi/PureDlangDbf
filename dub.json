@@ -7,6 +7,6 @@
 	"copyright": "Copyright © 2017, noname",
 	"license": "MIT",
 	"stringImportPaths" :["source"],
-	"dependencies" :{"gtk-d": "~>3.7.1"},
-	"dflags": ["-m32"]
+	"dependencies" :{},
+	"dflags": []
 }

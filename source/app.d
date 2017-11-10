@@ -2,9 +2,15 @@ import std.stdio;
 import Dbf;
 import national.charsets;
 import national.encoding;
+import HtmlViewer;
 
 void main(string[] args)
 {
+	auto view = new HtmlViewer();
+
+	view.open("PIndx16.dbf");
+
+	/*
 	auto reader = new DbfReader(IBM866);
 	reader.openDbf("PIndx16.dbf");
 	writeln("recordCount = ", reader.recordCount);
@@ -30,14 +36,5 @@ void main(string[] args)
 	reader.exportToCsv("db.csv");
 
 	writeln("loaded rows = ", reader.rows.length);
-import gtk.MainWindow;
-import gtk.Label;
-import gtk.Main;
-Main.init(args);
-	MainWindow win = new MainWindow("Hello World");
-	win.setDefaultSize(200, 100);
-	win.add(new Label("Hello World"));
-	win.showAll();
-
-	Main.run();
+	*/
 }
