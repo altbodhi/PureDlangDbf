@@ -19,7 +19,9 @@ dbf read and write library for old one byte encoding.
 можно использовать 866 или 1251 кодировку для чтения.
 Вывод: писать на D можно, но все равно не так продуктивно как на C#,
 а выгода от этого сомнительна. Вообщем, завязываю с экзотикой.
-Help:
-puredlangdbf.exe -d PIndx16.dbf -w export.html  -r 0 -e 866
-puredlangdbf.exe -d PIndx16.dbf -c export.csv  -r 0 -e 866
-puredlangdbf.exe -d PIndx16.dbf -i 1  -r 0 -e 866
+
+* puredlangdbf.exe -d PIndx16.dbf -w export.html  -r 0 -e 866
+
+* puredlangdbf.exe -d PIndx16.dbf -c export.csv  -r 0 -e 866
+
+* puredlangdbf.exe -d PIndx16.dbf -i 1  -r 0 -e 866
